@@ -47,10 +47,10 @@ def parse_args():
 
 
 def do_training(data_dir, model_dir, device, image_size, input_size, num_workers, batch_size,
-                learning_rate, max_epoch, save_interval, aug_methods=[]):
+                learning_rate, max_epoch, save_interval, aug_methods=[], log_dir = './tensorboard_logs'):
 
     # TensorBoard 로그 설정
-    writer = SummaryWriter(log_dir=model_dir)
+    writer = SummaryWriter(log_dir=log_dir)
 
     dataset = SceneTextDataset(
         data_dir,
@@ -94,7 +94,7 @@ def do_training(data_dir, model_dir, device, image_size, input_size, num_workers
                 epoch_loss += loss_val
 
                 # TensorBoard에 손실 기록
-                writer.add_scalar('Loss/train', loss_val, epoch * num_batches + pbar.n)
+                writer.add_scalar('Loss/{aug_methods_str}/train', loss_val, epoch * num_batches + pbar.n)
 
                 pbar.update(1)
                 val_dict = {

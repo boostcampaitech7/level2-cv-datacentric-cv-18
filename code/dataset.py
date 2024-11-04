@@ -344,6 +344,7 @@ class SceneTextDataset(Dataset):
                  drop_under_threshold=1,
                  color_jitter=True,
                  normalize=True,
+                 aug_methods = [],
                  ):
 
         self._lang_list = ['chinese', 'japanese', 'thai', 'vietnamese']
@@ -361,7 +362,7 @@ class SceneTextDataset(Dataset):
 
         self.image_size, self.crop_size = image_size, crop_size
         self.color_jitter, self.normalize = color_jitter, normalize
-
+        self.aug_methods = aug_methods
         self.drop_under_threshold = drop_under_threshold
         self.ignore_under_threshold = ignore_under_threshold
 
@@ -468,7 +469,7 @@ class SceneTextDataset(Dataset):
     def __getitem__(self, idx):
 
         # unpack aug_method 
-        aug_method = self._unpacking(self.aug_method)
+        arg_aug_methods = self._unpacking(self.aug_methods)
 
         # 이미지 이름, 이미지 경로
         image_fname = self.image_fnames[idx]
@@ -503,7 +504,7 @@ class SceneTextDataset(Dataset):
             image = image.convert('RGB')
         image = np.array(image)
 
-        funcs = self._transform(**aug_method)
+        funcs = self._transform(**arg_aug_methods)
         transform = A.Compose(funcs)
 
         image = transform(image=image)['image']

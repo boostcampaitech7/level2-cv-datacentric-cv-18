@@ -370,45 +370,82 @@ class SceneTextDataset(Dataset):
 
 
     def _transform(self, gaussian=False, glass=False, motion=False, median=False, advanced=False, blur=False, saltpepper=False,
-                        ):
+                gaussnoise=False, isonoise=False, multiplicativenoise=False,
+                imagecompression=False, jpegcompression=False, randombrightness=False, randomcontrast=False,
+                randombrightnesscontrast=False, superpixels=False,
+                randomfog=False, randomrain=False, randomshadow=False, randomsnow=False, randomsunflare=False,
+                clahe=False, emboss=False, randomtonecurve=False, downscale=False, equalize=False, fancypca=False):
 
-        # blur list
+        # 변환 리스트 초기화
         transform_list = []
-        if gaussianblur: transform_list.append(A.GaussianBlur())
-        if glass: transform_list.append(A.GlassBlur())
-        if motion: transform_list.append(A.MotionBlur())
-        if advanced: transform_list.append(A.MedianBlur())
-        if blur: transform_list.append(A.Blur())
-        if saltpepper: transform_list.append(A.SaltAndPepperBlur())
-                
-        # noise list
-        if gaussnoise: transform_list.append(A.GaussNoice())
-        if isonoise: transform_list.append(A.ISONoise())
-        if multiplicativenoise: transform_list.append(A.MultiplicativeNoise())
-        
-        # camera list
-        if imagecompression: transfrom_list.append(A.ImageCompression())
-        if jpegcompression: transform_list.append(A.JpegCompression())
-        if randombrightness: transform_list.append(A.RandomBrightness())
-        if randomcontrast: transform_list.append(A.RandomContrast())
-        if randombrightnesscontrast: transform_list.append(A.RandomBrightnessContrast())
-        if superpixels: transform_list.append(A.Superpixels())
 
-        # weather_transform
-        if randomfog: transform_list.append(A.RandomFog())
-        if randomrain: transform_list.append(A.RandomRain())
-        if randomshadow: transform_list.append(A.RandomShadow())
-        if randomsnow: transform_list.append(A.RandomSnow())
-        if randomsunflare: transform_list.append(A.RandomSunFlare())
+        # 블러 리스트
+        blur_transforms = {
+            'gaussianblur': A.GaussianBlur(),
+            'glass': A.GlassBlur(),
+            'motion': A.MotionBlur(),
+            'advanced': A.MedianBlur(),
+            'blur': A.Blur(),
+            'saltpepper': A.SaltAndPepperBlur(),
+        }
+        transform_list.extend([transform for condition, transform in blur_transforms.items() if locals().get(condition)])
 
-        # custom_transform
-        if clahe: transform_list.append(A.CLAHE())
-        if emboss: transform_list.append(A.Emboss())
-        if randomtonecurve: transform_list.append(A.RandomToneCurve())
-        if downscale: transform_list.append(A.Downscale())
+        # 노이즈 리스트
+        noise_transforms = {
+            'gaussnoise': A.GaussNoise(),
+            'isonoise': A.ISONoise(),
+            'multiplicativenoise': A.MultiplicativeNoise(),
+        }
+        transform_list.extend([transform for condition, transform in noise_transforms.items() if locals().get(condition)])
 
-        return A.OneOf(noise_list, p = 0.5)
+        # 카메라 리스트
+        camera_transforms = {
+            'imagecompression': A.ImageCompression(),
+            'jpegcompression': A.JpegCompression(),
+            'randombrightness': A.RandomBrightness(),
+            'randomcontrast': A.RandomContrast(),
+            'randombrightnesscontrast': A.RandomBrightnessContrast(),
+            'superpixels': A.Superpixels(),
+        }
+        transform_list.extend([transform for condition, transform in camera_transforms.items() if locals().get(condition)])
 
+        # 날씨 변환 리스트
+        weather_transforms = {
+            'randomfog': A.RandomFog(),
+            'randomrain': A.RandomRain(),
+            'randomshadow': A.RandomShadow(),
+            'randomsnow': A.RandomSnow(),
+            'randomsunflare': A.RandomSunFlare(),
+        }
+        transform_list.extend([transform for condition, transform in weather_transforms.items() if locals().get(condition)])
+
+        # 커스텀 변환 리스트
+        custom_transforms = {
+            'clahe': A.CLAHE(),
+            'emboss': A.Emboss(),
+            'randomtonecurve': A.RandomToneCurve(),
+            'downscale': A.Downscale(),
+        }
+        transform_list.extend([transform for condition, transform in custom_transforms.items() if locals().get(condition)])
+
+
+        other_transform = {
+            'equalize': A.Equalize(),
+            'fancypca': A.FancyPCA(),
+            'invertimg': A.InvertImg(),
+            'posterize': A.Posterize(),
+            'solarize': A.Solarize(),
+            'sharpen': A.Sharpen(),
+        }
+
+        transform_list.extend([transform for condition, transform in other_transform.items() if locals().get(condition)])
+
+        color_transform = {
+            'togray': A.ToGray(),
+            'tosepia': A.ToSepia(),
+            'channelshuffle': A.ChannelShuffle(),
+        }
+        transform_list.extend([transform for condition, transform in color_transform.items() if locals().get(condition)])
 
     def _infer_dir(self, fname):
         lang_indicator = fname.split('.')[1]
@@ -456,23 +493,6 @@ class SceneTextDataset(Dataset):
 
         # 이미지 증강 기법 활용
         image = Image.open(image_fpath)
-
-        # transform
-
-        # other_transform = A.OneOf([
-        #     A.Equalize(),
-        #     A.FancyPCA(),
-        #     A.InvertImg(),
-        #     A.Posterize(),
-        #     A.Solarize(),
-        #     A.Sharpen(),
-        # ], p=0.5)
-
-        # color_transform = A.OneOf([
-        #     A.ToGray(),
-        #     A.ToSepia(),
-        #     A.ChannelShuffle(),
-        # ], p=0.5)
 
         image, vertices = resize_img(image, vertices, self.image_size)
         image, vertices = adjust_height(image, vertices)

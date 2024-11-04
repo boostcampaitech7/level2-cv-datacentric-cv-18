@@ -402,7 +402,10 @@ class SceneTextDataset(Dataset):
         if randomsunflare: transform_list.append(A.RandomSunFlare())
 
         # custom_transform
-        if 
+        if clahe: transform_list.append(A.CLAHE())
+        if emboss: transform_list.append(A.Emboss())
+        if randomtonecurve: transform_list.append(A.RandomToneCurve())
+        if downscale: transform_list.append(A.Downscale())
 
         return A.OneOf(noise_list, p = 0.5)
 
@@ -455,13 +458,6 @@ class SceneTextDataset(Dataset):
         image = Image.open(image_fpath)
 
         # transform
-
-        # custom_transform = A.OneOf([
-        #     A.CLAHE(),
-        #     A.Emboss(),
-        #     A.RandomToneCurve(),
-        #     A.Downscale()
-        # ], p=0.5)
 
         # other_transform = A.OneOf([
         #     A.Equalize(),

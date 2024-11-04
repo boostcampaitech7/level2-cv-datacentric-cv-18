@@ -1,4 +1,6 @@
 *.gz
+# tensorboard 파일 삭제
+events.*
 
 # 소스코드 캐싱 파일 삭제
 *.pyc

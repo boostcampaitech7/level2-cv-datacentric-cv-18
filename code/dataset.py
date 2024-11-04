@@ -367,10 +367,10 @@ class SceneTextDataset(Dataset):
         self.ignore_under_threshold = ignore_under_threshold
 
     def _unpacking(self, aug_methods):
-        return {method: True for method in args.aug_method} if args.aug_method else {}
+        return {method: True for method in aug_methods} if aug_methods else {}
 
 
-    def _transform(self, gaussian=False, glass=False, motion=False, median=False, advanced=False, blur=False, saltpepper=False,
+    def _transform(self, gaussian=False, glass=False, motion=False, median=False, advanced=False, blur=False,
                 gaussnoise=False, isonoise=False, multiplicativenoise=False,
                 imagecompression=False, jpegcompression=False, randombrightness=False, randomcontrast=False,
                 randombrightnesscontrast=False, superpixels=False,
@@ -387,7 +387,6 @@ class SceneTextDataset(Dataset):
             'motion': A.MotionBlur(),
             'advanced': A.MedianBlur(),
             'blur': A.Blur(),
-            'saltpepper': A.SaltAndPepperBlur(),
         }
         transform_list.extend([transform for condition, transform in blur_transforms.items() if locals().get(condition)])
 
@@ -403,8 +402,6 @@ class SceneTextDataset(Dataset):
         camera_transforms = {
             'imagecompression': A.ImageCompression(),
             'jpegcompression': A.JpegCompression(),
-            'randombrightness': A.RandomBrightness(),
-            'randomcontrast': A.RandomContrast(),
             'randombrightnesscontrast': A.RandomBrightnessContrast(),
             'superpixels': A.Superpixels(),
         }
@@ -447,6 +444,10 @@ class SceneTextDataset(Dataset):
             'channelshuffle': A.ChannelShuffle(),
         }
         transform_list.extend([transform for condition, transform in color_transform.items() if locals().get(condition)])
+
+        transform_list = [t for t in transform_list if t is not None]
+        return transform_list
+
 
     def _infer_dir(self, fname):
         lang_indicator = fname.split('.')[1]

@@ -362,6 +362,7 @@ class SceneTextDataset(Dataset):
 
         self.image_size, self.crop_size = image_size, crop_size
         self.color_jitter, self.normalize = color_jitter, normalize
+        self.transform = self._transform(**self._unpacking(aug_methods))
         self.aug_methods = aug_methods
         self.drop_under_threshold = drop_under_threshold
         self.ignore_under_threshold = ignore_under_threshold
@@ -375,73 +376,72 @@ class SceneTextDataset(Dataset):
                 imagecompression=False, jpegcompression=False, randombrightness=False, randomcontrast=False,
                 randombrightnesscontrast=False, superpixels=False,
                 randomfog=False, randomrain=False, randomshadow=False, randomsnow=False, randomsunflare=False,
-                clahe=False, emboss=False, randomtonecurve=False, downscale=False, equalize=False, fancypca=False):
+                clahe=False, emboss=False, randomtonecurve=False, downscale=False, equalize=False, fancypca=False, p=0.5):
 
         # 변환 리스트 초기화
         transform_list = []
 
         # 블러 리스트
         blur_transforms = {
-            'gaussianblur': A.GaussianBlur(),
-            'glass': A.GlassBlur(),
-            'motion': A.MotionBlur(),
-            'advanced': A.MedianBlur(),
-            'blur': A.Blur(),
+            'gaussianblur': A.GaussianBlur(p=p),
+            'glass': A.GlassBlur(p=p),
+            'motion': A.MotionBlur(p=p),
+            'advanced': A.MedianBlur(p=p),
+            'blur': A.Blur(p=p),
         }
         transform_list.extend([transform for condition, transform in blur_transforms.items() if locals().get(condition)])
 
         # 노이즈 리스트
         noise_transforms = {
-            'gaussnoise': A.GaussNoise(),
-            'isonoise': A.ISONoise(),
-            'multiplicativenoise': A.MultiplicativeNoise(),
+            'gaussnoise': A.GaussNoise(p=p),
+            'isonoise': A.ISONoise(p=p),
+            'multiplicativenoise': A.MultiplicativeNoise(p=p),
         }
         transform_list.extend([transform for condition, transform in noise_transforms.items() if locals().get(condition)])
 
         # 카메라 리스트
         camera_transforms = {
-            'imagecompression': A.ImageCompression(),
-            'jpegcompression': A.JpegCompression(),
-            'randombrightnesscontrast': A.RandomBrightnessContrast(),
-            'superpixels': A.Superpixels(),
+            'imagecompression': A.ImageCompression(p=p),
+            'randombrightnesscontrast': A.RandomBrightnessContrast(p=p),
+            'superpixels': A.Superpixels(p=p),
         }
         transform_list.extend([transform for condition, transform in camera_transforms.items() if locals().get(condition)])
 
         # 날씨 변환 리스트
         weather_transforms = {
-            'randomfog': A.RandomFog(),
-            'randomrain': A.RandomRain(),
-            'randomshadow': A.RandomShadow(),
-            'randomsnow': A.RandomSnow(),
-            'randomsunflare': A.RandomSunFlare(),
+            'randomfog': A.RandomFog(p=p),
+            'randomrain': A.RandomRain(p=p),
+            'randomshadow': A.RandomShadow(p=p),
+            'randomsnow': A.RandomSnow(p=p),
+            'randomsunflare': A.RandomSunFlare(p=p),
         }
         transform_list.extend([transform for condition, transform in weather_transforms.items() if locals().get(condition)])
 
         # 커스텀 변환 리스트
         custom_transforms = {
-            'clahe': A.CLAHE(),
-            'emboss': A.Emboss(),
-            'randomtonecurve': A.RandomToneCurve(),
-            'downscale': A.Downscale(),
+            'clahe': A.CLAHE(p=p),
+            'emboss': A.Emboss(p=p),
+            'randomtonecurve': A.RandomToneCurve(p=p),
+            'downscale': A.Downscale(p=p),
         }
         transform_list.extend([transform for condition, transform in custom_transforms.items() if locals().get(condition)])
 
 
         other_transform = {
-            'equalize': A.Equalize(),
-            'fancypca': A.FancyPCA(),
-            'invertimg': A.InvertImg(),
-            'posterize': A.Posterize(),
-            'solarize': A.Solarize(),
-            'sharpen': A.Sharpen(),
+            'equalize': A.Equalize(p=p),
+            'fancypca': A.FancyPCA(p=p),
+            'invertimg': A.InvertImg(p=p),
+            'posterize': A.Posterize(p=p),
+            'solarize': A.Solarize(p=p),
+            'sharpen': A.Sharpen(p=p),
         }
 
         transform_list.extend([transform for condition, transform in other_transform.items() if locals().get(condition)])
 
         color_transform = {
-            'togray': A.ToGray(),
-            'tosepia': A.ToSepia(),
-            'channelshuffle': A.ChannelShuffle(),
+            'togray': A.ToGray(p=p),
+            'tosepia': A.ToSepia(p=p),
+            'channelshuffle': A.ChannelShuffle(p=p),
         }
         transform_list.extend([transform for condition, transform in color_transform.items() if locals().get(condition)])
 
@@ -505,7 +505,7 @@ class SceneTextDataset(Dataset):
             image = image.convert('RGB')
         image = np.array(image)
 
-        funcs = self._transform(**arg_aug_methods)
+        funcs = self.transform
         transform = A.Compose(funcs)
 
         image = transform(image=image)['image']

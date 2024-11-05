@@ -28,8 +28,6 @@ def parse_args():
     parser.add_argument('--input_size', type=int, default=2048)
     parser.add_argument('--batch_size', type=int, default=5)
 
-    parser.add_argument('--aug_method', type=str)
-
     args = parser.parse_args()
 
     if args.input_size % 32 != 0:
@@ -70,7 +68,7 @@ def main(args):
     model = EAST(pretrained=False).to(args.device)
 
     # Get paths to checkpoint files
-    ckpt_fpath = osp.join(args.model_dir, f'{args.aug_method}_latest.pth')
+    ckpt_fpath = osp.join(args.model_dir, 'latest.pth')
 
     if not osp.exists(args.output_dir):
         os.makedirs(args.output_dir)
@@ -82,7 +80,7 @@ def main(args):
                                 args.batch_size, split='test')
     ufo_result['images'].update(split_result['images'])
 
-    output_fname = f'{args.aug_method}_output.csv'
+    output_fname = 'output.csv'
     with open(osp.join(args.output_dir, output_fname), 'w') as f:
         json.dump(ufo_result, f, indent=4)
 

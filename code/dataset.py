@@ -11,7 +11,6 @@ from torch.utils.data import Dataset
 from shapely.geometry import Polygon
 from numba import njit
 
-
 @njit
 def cal_distance(x1, y1, x2, y2):
     '''calculate the Euclidean distance'''
@@ -343,10 +342,7 @@ class SceneTextDataset(Dataset):
                  ignore_under_threshold=10,
                  drop_under_threshold=1,
                  color_jitter=True,
-                 normalize=True,
-                 aug_methods = [],
-                 ):
-
+                 normalize=True):
         self._lang_list = ['chinese', 'japanese', 'thai', 'vietnamese']
         self.root_dir = root_dir
         self.split = split
@@ -362,92 +358,9 @@ class SceneTextDataset(Dataset):
 
         self.image_size, self.crop_size = image_size, crop_size
         self.color_jitter, self.normalize = color_jitter, normalize
-        self.transform = self._transform(**self._unpacking(aug_methods))
-        self.aug_methods = aug_methods
+
         self.drop_under_threshold = drop_under_threshold
         self.ignore_under_threshold = ignore_under_threshold
-
-    def _unpacking(self, aug_methods):
-        return {method: True for method in aug_methods} if aug_methods else {}
-
-
-    def _transform(self, gaussian=False, glass=False, motion=False, median=False, advanced=False, blur=False,
-                gaussnoise=False, isonoise=False, multiplicativenoise=False,
-                imagecompression=False, jpegcompression=False, randombrightness=False, randomcontrast=False,
-                randombrightnesscontrast=False, superpixels=False,
-                randomfog=False, randomrain=False, randomshadow=False, randomsnow=False, randomsunflare=False,
-                clahe=False, emboss=False, randomtonecurve=False, downscale=False, equalize=False, fancypca=False, p=0.5):
-
-        # 변환 리스트 초기화
-        transform_list = []
-
-        # 블러 리스트
-        blur_transforms = {
-            'gaussianblur': A.GaussianBlur(p=p),
-            'glass': A.GlassBlur(p=p),
-            'motion': A.MotionBlur(p=p),
-            'advanced': A.MedianBlur(p=p),
-            'blur': A.Blur(p=p),
-        }
-        transform_list.extend([transform for condition, transform in blur_transforms.items() if locals().get(condition)])
-
-        # 노이즈 리스트
-        noise_transforms = {
-            'gaussnoise': A.GaussNoise(p=p),
-            'isonoise': A.ISONoise(p=p),
-            'multiplicativenoise': A.MultiplicativeNoise(p=p),
-        }
-        transform_list.extend([transform for condition, transform in noise_transforms.items() if locals().get(condition)])
-
-        # 카메라 리스트
-        camera_transforms = {
-            'imagecompression': A.ImageCompression(p=p),
-            'randombrightnesscontrast': A.RandomBrightnessContrast(p=p),
-            'superpixels': A.Superpixels(p=p),
-        }
-        transform_list.extend([transform for condition, transform in camera_transforms.items() if locals().get(condition)])
-
-        # 날씨 변환 리스트
-        weather_transforms = {
-            'randomfog': A.RandomFog(p=p),
-            'randomrain': A.RandomRain(p=p),
-            'randomshadow': A.RandomShadow(p=p),
-            'randomsnow': A.RandomSnow(p=p),
-            'randomsunflare': A.RandomSunFlare(p=p),
-        }
-        transform_list.extend([transform for condition, transform in weather_transforms.items() if locals().get(condition)])
-
-        # 커스텀 변환 리스트
-        custom_transforms = {
-            'clahe': A.CLAHE(p=p),
-            'emboss': A.Emboss(p=p),
-            'randomtonecurve': A.RandomToneCurve(p=p),
-            'downscale': A.Downscale(p=p),
-        }
-        transform_list.extend([transform for condition, transform in custom_transforms.items() if locals().get(condition)])
-
-
-        other_transform = {
-            'equalize': A.Equalize(p=p),
-            'fancypca': A.FancyPCA(p=p),
-            'invertimg': A.InvertImg(p=p),
-            'posterize': A.Posterize(p=p),
-            'solarize': A.Solarize(p=p),
-            'sharpen': A.Sharpen(p=p),
-        }
-
-        transform_list.extend([transform for condition, transform in other_transform.items() if locals().get(condition)])
-
-        color_transform = {
-            'togray': A.ToGray(p=p),
-            'tosepia': A.ToSepia(p=p),
-            'channelshuffle': A.ChannelShuffle(p=p),
-        }
-        transform_list.extend([transform for condition, transform in color_transform.items() if locals().get(condition)])
-
-        transform_list = [t for t in transform_list if t is not None]
-        return transform_list
-
 
     def _infer_dir(self, fname):
         lang_indicator = fname.split('.')[1]
@@ -462,20 +375,15 @@ class SceneTextDataset(Dataset):
         else:
             raise ValueError
         return osp.join(self.root_dir, f'{lang}_receipt', 'img', self.split)
-        
     def __len__(self):
         return len(self.image_fnames)
 
-    # 이미지를 index로 접근할 때 이 method를 호출
     def __getitem__(self, idx):
-
-        # unpack aug_method 
-        arg_aug_methods = self._unpacking(self.aug_methods)
-
         # 이미지 이름, 이미지 경로
         image_fname = self.image_fnames[idx]
         image_fpath = osp.join(self._infer_dir(image_fname), image_fname)
 
+        # 바운딩 박스 및 라벨 처리
         vertices, labels = [], []
         for word_info in self.anno['images'][image_fname]['words'].values():
             num_pts = np.array(word_info['points']).shape[0]
@@ -492,10 +400,60 @@ class SceneTextDataset(Dataset):
             drop_under=self.drop_under_threshold
         )
 
-
-        # 이미지 증강 기법 활용
+        # 이미지 불러오기
         image = Image.open(image_fpath)
 
+        # 증강 기법 설정
+        blur_transform = A.OneOf([
+            A.GaussianBlur(),
+            A.GlassBlur(),
+            A.MotionBlur(),
+            A.MedianBlur(),
+            A.AdvancedBlur(),
+            A.Blur(),
+            A.SaltAndPepperBlur()
+        ], p=0.5)
+
+        noise_transform = A.OneOf([
+            A.GaussNoise(),
+            A.ISONoise(),
+            A.MultiplicativeNoise(),
+        ], p=0.5)
+
+        camera_transform = A.OneOf([
+            A.ImageCompression(),
+            A.JpegCompression(),
+            A.RandomBrightness(),
+            A.RandomContrast(),
+            A.RandomBrightnessContrast(),
+            A.Superpixels()
+        ], p=0.5)
+
+        weather_transform = A.OneOf([
+            A.RandomFog(),
+            A.RandomRain(),
+            A.RandomShadow(),
+            A.RandomSnow(),
+            A.RandomSunFlare()
+        ], p=0.5)
+
+        # 전체 변환을 합치기
+        transform = A.Compose([
+            blur_transform,
+            noise_transform,
+            camera_transform,
+            weather_transform,
+            A.ColorJitter() if self.color_jitter else None,
+            A.Normalize(mean=(0.5, 0.5, 0.5), std=(0.5, 0.5, 0.5)) if self.normalize else None
+        ])
+
+        # None 값을 제거
+        transform = [t for t in transform if t is not None]
+
+        # 이미지 변환 적용
+        image = transform(image=np.array(image))['image']
+
+        # 나머지 변환 적용
         image, vertices = resize_img(image, vertices, self.image_size)
         image, vertices = adjust_height(image, vertices)
         image, vertices = rotate_img(image, vertices)
@@ -505,10 +463,6 @@ class SceneTextDataset(Dataset):
             image = image.convert('RGB')
         image = np.array(image)
 
-        funcs = self.transform
-        transform = A.Compose(funcs)
-
-        image = transform(image=image)['image']
         word_bboxes = np.reshape(vertices, (-1, 4, 2))
         roi_mask = generate_roi_mask(image, vertices, labels)
 
